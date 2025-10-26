@@ -266,7 +266,7 @@ def _center_parent_window(parent: ctk.CTkToplevel, root: ctk.CTk, width: Optiona
 # =============================================================================================================================
 
 class CustomTextbox(ctk.CTkTextbox):
-    def _ensure_max_lines(self, max_lines: int = 500) -> None:
+    def _ensure_max_lines(self, max_lines: int = 7500) -> None:
         self.update_idletasks()
         total_lines = int(self.index("end-1c").split('.')[0])
         if total_lines > max_lines:
