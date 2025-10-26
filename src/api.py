@@ -927,6 +927,15 @@ def parse_network_stream_data_for_streaming(data: str, send_thoughts: bool = Tru
                                         network_data['thinking_active'] = False
                                         network_data['thinking_started'] = False
                                     chunks.append(str(item['v']))
+                                elif item_path == 'fragments' and isinstance(item.get('v'), list):
+                                    if network_data['thinking_active']:
+                                        if send_thoughts:
+                                            chunks.append("\n</think>\n\n")
+                                        network_data['thinking_active'] = False
+                                        network_data['thinking_started'] = False
+                                    for frag in item['v']:
+                                        if isinstance(frag, dict) and 'content' in frag:
+                                            chunks.append(str(frag['content']))
             
             # Handle simple content updates (fallback) - only if not in thinking mode
             elif 'v' in json_data and not network_data['thinking_active']:
