@@ -826,9 +826,9 @@ def parse_network_stream_data_for_streaming(data: str, send_thoughts: bool = Tru
                                     # Starting thinking fragment
                                     if send_thoughts:
                                         if not network_data['thinking_active']:
-                                            chunks.append("<think>\n")
                                             network_data['thinking_active'] = True
                                             network_data['thinking_started'] = True
+                                        chunks.append("<think>\n")
                                         chunks.append(fragment_content)
                                     else:
                                         # Track thinking state but don't send content
@@ -916,7 +916,7 @@ def parse_network_stream_data_for_streaming(data: str, send_thoughts: bool = Tru
                     # If thinking mode is active but send_thoughts is disabled, ignore content completely
 
                 # LEGACY FORMAT: Handle batch operations
-                elif path == 'response' and json_data.get('o') == 'BATCH':
+                elif path == 'response' and json_data.get('o') == 'BATCH':                    
                     if isinstance(content_value, list):
                         for item in content_value:
                             if isinstance(item, dict) and 'v' in item:
@@ -942,12 +942,17 @@ def parse_network_stream_data_for_streaming(data: str, send_thoughts: bool = Tru
                                         network_data['thinking_started'] = False
                                     chunks.append(str(item['v']))
                                 elif item_path == 'fragments' and isinstance(item.get('v'), list):
-                                    if network_data['thinking_active']:
-                                        if send_thoughts:
-                                            chunks.append("\n</think>\n\n")
-                                        network_data['thinking_active'] = False
-                                        network_data['thinking_started'] = False
+                                    #if network_data['thinking_active']:
+                                    #    if send_thoughts:
+                                    #        chunks.append("\n</think>\n\n")
+                                    #    network_data['thinking_active'] = False
+                                    #    network_data['thinking_started'] = False
                                     for frag in item['v']:
+                                        if frag.get('type') == 'THINK':
+                                            # print(f"***DEBUG*** REASONING data incoming")
+                                            network_data['thinking_active'] = True
+                                            network_data['thinking_started'] = True
+                                            chunks.append("<think>\n")
                                         if isinstance(frag, dict) and 'content' in frag:
                                             chunks.append(str(frag['content']))
 
@@ -1156,22 +1161,27 @@ def parse_network_stream_data(data: str, send_thoughts: bool = True) -> str:
                                         network_data['thinking_started'] = False
                                     result += str(item['v'])
                                 elif item_path == 'fragments' and isinstance(item.get('v'), list):
-                                    if network_data['thinking_active']:
-                                        if send_thoughts:
-                                            thinking_content = network_data['thinking_buffer'].strip()
-                                            if thinking_content:
-                                                result += f"<think>\n{thinking_content}\n</think>\n\n"
-
-                                        # Reset thinking state
-                                        network_data['thinking_active'] = False
-                                        network_data['thinking_buffer'] = ""
-                                        network_data['thinking_started'] = False
+                                    # if network_data['thinking_active']:
+                                    #    if send_thoughts:
+                                    #        thinking_content = network_data['thinking_buffer'].strip()
+                                    #        if thinking_content:
+                                    #            result += f"<think>\n{thinking_content}\n</think>\n\n"
+                                    #    # Reset thinking state
+                                    #    network_data['thinking_active'] = False
+                                    #    network_data['thinking_buffer'] = ""
+                                    #    network_data['thinking_started'] = False
                                     for frag in item['v']:
+                                        if frag.get('type') == 'THINK':
+                                            print(f"***DEBUG*** REASONING data incoming")
+                                            network_data['thinking_active'] = True
+                                            network_data['thinking_started'] = True
                                         if isinstance(frag, dict) and 'content' in frag:
-                                            result += str(frag['content'])
+                                            if network_data['thinking_active']:
+                                                network_data['thinking_buffer'] += str(frag['content'])
+                                            else:
+                                                result += str(frag['content'])
 
                         return result
-                    
 
             # Handle simple content updates (fallback)
             elif 'v' in json_data:
